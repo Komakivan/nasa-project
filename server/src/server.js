@@ -1,21 +1,32 @@
 const http = require('http');
+const mongoose = require('mongoose')
 
-require('dotenv').config();
+// require('dotenv').config();
 
 const app = require('./app');
-const { mongoConnect } = require('./services/mongo');
 const { loadPlanetsData } = require('./models/planets.model');
-const { loadLaunchData } = require('./models/launches.model');
+
 
 const PORT = process.env.PORT || 8000;
+const MANGO_URL =
+  "mongodb+srv://komakechivan555:Komak07884@nasa-cluster.swlvmia.mongodb.net/nasa?retryWrites=true&w=majority";
 
 const server = http.createServer(app);
 
+// the below code is just for helping with visualization..
+mongoose.connection.once('open',()=>{
+  console.log('mongooose is ready...')
+})
+
+mongoose.connection.on('error',(err)=>{
+  console.error(err)
+})
+
 async function startServer() {
-  await mongoConnect();
+
+  await mongoose.connect(MANGO_URL)
   await loadPlanetsData();
-  await loadLaunchData();
-  
+
   server.listen(PORT, () => {
     console.log(`Listening on port ${PORT}...`);
   });

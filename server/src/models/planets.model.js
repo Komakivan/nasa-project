@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { parse } = require('csv-parse');
 
-const planets = require('./planets.mongo');
+const {planetsModel} = require('./planets.mongo')
 
 function isHabitablePlanet(planet) {
   return planet['koi_disposition'] === 'CONFIRMED'
@@ -19,7 +19,7 @@ function loadPlanetsData() {
       }))
       .on('data', async (data) => {
         if (isHabitablePlanet(data)) {
-          savePlanet(data);
+           await savePlanet(data) // this saves the planets to the database
         }
       })
       .on('error', (err) => {
@@ -27,30 +27,40 @@ function loadPlanetsData() {
         reject(err);
       })
       .on('end', async () => {
-        const countPlanetsFound = (await getAllPlanets()).length;
-        console.log(`${countPlanetsFound} habitable planets found!`);
+        const planetsCount = ( await getAllPlanets()).length
+        console.log(`${planetsCount} habitable planets found!`);
         resolve();
       });
   });
 }
 
-async function getAllPlanets() {
-  return await planets.find({}, {
-    '_id': 0, '__v': 0,
-  });
+
+// we have to use async-await because mongoose queries are asynchronous
+ async function getAllPlanets() {
+  return  await planetsModel.find({},{
+    '__id':0,'__v':0
+  }) // this returns everything in the document and excludes the __id and __v
 }
 
+
+// a function to save planets to the database
 async function savePlanet(planet) {
-  try {
-    await planets.updateOne({
-      keplerName: planet.kepler_name,
-    }, {
-      keplerName: planet.kepler_name,
-    }, {
-      upsert: true,
-    });
-  } catch(err) {
-    console.error(`Could not save planet ${err}`);
+
+  try{
+
+    await planetsModel.updateOne(
+      {
+        keplerName: planet.kepler_name,
+      },
+      {
+        keplerName: planet.kepler_name,
+      },
+      {
+        upsert: true,
+      }
+    );
+  } catch(err){
+    console.error(`Could not save planet: ${err}`)
   }
 }
 
